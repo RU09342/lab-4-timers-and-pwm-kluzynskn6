@@ -1,28 +1,11 @@
 # Software PWM
-Most microprocessors will have a Timer module, but depending on the device, some may not come with pre-built PWM modules. Instead, you may have to utilize software techniques to synthesize PWM on your own.
+#### Nick Kluzynski
+PWMs are used to control the amount of time a signal is passed through per period. This can be used in a variety of ways, but here, it is used to dim an LED. On the MSP430, the timer modules have a PWM mode, but not all microcontrollers do. Here, a PWM is made using the timer module in normal mode, along with code that ties it all together. A button is used to control the PWM settings, and it is outputted onto an LED.
 
-## Task
-You need to generate a 1kHz PWM signal with a duty cycle between 0% and 100%. Upon the processor starting up, you should PWM one of the on-board LEDs at a 50% duty cycle. Upon pressing one of the on-board buttons, the duty cycle of the LED should increase by 10%. Once you have reached 100%, your duty cycle should go back to 0% on the next button press. You also need to implement the other LED to light up when the Duty Cycle button is depressed and turns back off when it is let go. This is to help you figure out if the button has triggered multiple interrupts.
+## Usage
+The base frequency of the LED is 1kHz. The PWM starts at 50%, and is incremented by 10% on every button press. After reaching 100%, another press will loop it down to 0%. To notify button bounces, the other LED is toggled on button press.
 
-### Hints
-You really, really, really, really need to hook up the output of your LED pin to an oscilloscope to make sure that the duty cycle is accurate. Also, since you are going to be doing a lot of initialization, it would be helpful for all persons involved if you created your main function like:
-'''c
-int main(void)
-{
-	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
-	LEDSetup(); // Initialize our LEDS
-	ButtonSetup();  // Initialize our button
-	TimerA0Setup(); // Initialize Timer0
-	TimerA1Setup(); // Initialize Timer1
-	__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
-}
-'''
-This way, each of the steps in initialization can be isolated for easier understanding and debugging.
+### Implementation
+In order for the PWM to operate, 2 interrupts are used on the same timer. The first interrupt turns the LED off, unless it is set to 100%. The second interrupt turns the LED back on again, unless it is at 0%. By leaving the second interrupt at 1 kHz, the first interrupt can be have its compare register altered. This makes the LED turn on and off at different intervals, all while leaving the overall frequency at 1kHz. 
 
-
-## Extra Work
-### Linear Brightness
-Much like every other things with humans, not everything we interact with we perceive as linear. For senses such as sight or hearing, certain features such as volume or brightness have a logarithmic relationship with our senses. Instead of just incrementing by 10%, try making the brightness appear to change linearly. 
-
-### Power Comparison
-Since you are effectively turning the LED off for some period of time, it should follow that the amount of power you are using over time should be less. Using Energy Trace, compare the power consumption of the different duty cycles. What happens if you use the pre-divider in the timer module for the PWM (does it consume less power)?
+The button has 2 functions: it toggles the LED, and changes the compare register on the first interrupt.
