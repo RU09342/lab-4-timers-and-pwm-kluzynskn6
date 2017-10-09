@@ -1,15 +1,17 @@
 # Software Debouncing
-In previously labs, we talked about how objects such as switches can cause some nasty effects since they are actually a mechanical system at heart. We talked about the simple hardware method of debouncing, but due to the many different design constraints, you may not be able to add or adjust hardware. Debouncing is also only one of many applications which would require the use of built in Timers to allow for other processes to take place.
+#### Nick Kluzynski
+On the MSP430 devices, the buttons avavailable on the device are being used consistently. They have a problem though: the button seems to pressed several times on a single button press. This is not always the case, and its randomness is a heavy concern in these labs. This code will debounce the button, eliminating multi-presses almost entirely
 
-## Task
-You need to utilize the TIMER modules within the MSP430 processors to implement a debounced switch to control the state of an LED. You most likely will want to hook up your buttons on the development boards to an oscilloscope to see how much time it takes for the buttons to settle. The idea here is that your processor should be able to run other code, while relying on timers and interrupts to manage the debouncing in the background. You should not be using polling techniques for this assignment. Your code should also be able to detect 
+## Usage
+Whenever either button is pressed, the LED on that side is toggled. If the button bounces, the LED will switch several times; this should not happen. 
 
-### Hints
-You need to take a look at how the P1IE and P1IES registers work and how to control them within an interrupt routine. Remember that the debouncing is not going to be the main process you are going to run by the end of the lab.
+### Implementation
+A single timer is used for both buttons. Upon button press, it reads the timer register. If it is 0, then it goes further to check which button was pressed. Even on single button boards, the button ISR still checks to see if the button is pressed, preventing an execution on release.  Different code can be exectued on either button, but for now it toggles 2 different LEDs. After it executes the code. It clears the register flags, disables button interrupts, and starts the timer.
 
-## Extra Work
-### Low Power Modes
-Go into the datasheets or look online for information about the low power modes of your processors and using Energy Trace, see what the lowest power consumption you can achieve while still running your debouncing code. Take a note when your processor is not driving the LED (or unplug the header connecting the LED and check) but running the interrupt routine for your debouncing.
+The timer will interrupt after a specified delay, in this case it is set to 1/6th or 1/5th of a second, depending on how bouncy the buttons are. Upon interrupting, the timer stops itself, clears its register again, and reenables button interrupt. 
 
-### Double the fun
-Can you expand your code to debounce two switches? Do you have to use two Timer peripherals to do this?
+This effectively creates a passive delay after the buttons are pressed, which waits out any button bouncing. This works for both buttons, and any other interrupt or main code can be executed while it is waiting.
+
+## Known Problems
+The timer had to have a very long delay, which may cause intentional double-clicks from passing through. In addition, about 1/15 presses, there is still a single bounce. This is still a major improvement compared to the 7/10 bounces from before, that could even bounce 3 to 4 times on a single press.
+
